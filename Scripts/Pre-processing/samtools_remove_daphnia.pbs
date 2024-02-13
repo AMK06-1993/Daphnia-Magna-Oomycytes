@@ -1,0 +1,28 @@
+#!/bin/bash -l
+
+#SBATCH --cluster=genius
+#SBATCH --time=12:00:00
+#SBATCH --nodes=3
+#SBATCH --ntasks-per-node=36
+#SBATCH --account=lkulak_daphnia_gp
+
+cd /staging/leuven/stg_00106/PlasticDaphnia-Oomycytes/host-depleted
+
+while IFS= read -r id; do
+	echo "Processing sample: $id"
+	output_dir="/staging/leuven/stg_00106/PlasticDaphnia-Oomycytes/host-depleted"
+	sam_file="${output_dir}/${id}_mapped_and_unmapped.sam"
+	unmapped_bam="${output_dir}/${id}_bothUnmapped.bam"
+	
+	# Filter to keep only pairs where both reads are unmapped
+	/staging/leuven/stg_00106/tools/samtools/bin/samtools view -b -f 12 -F 256 "$sam_file" > "$unmapped_bam"
+	
+	# Convert BAM to FASTQ
+	unmapped_fastq_r1="${output_dir}/${id}_noHost_R1.fastq.gz"
+	unmapped_fastq_r2="${output_dir}/${id}_noHost_R2.fastq.gz"
+	
+	/staging/leuven/stg_00106/tools/samtools/bin/samtools fastq -1 "$unmapped_fastq_r1" -2 "$unmapped_fastq_r2" -0 /dev/null -s /dev/null -n "$unmapped_bam"
+done < ./ID
+
+
+
